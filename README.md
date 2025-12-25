@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Digital Bulletin Board for University
 
-## Getting Started
+## Problem Statement
 
-First, run the development server:
+The university currently relies on a physical notice board for announcements. Students only see updates if they pass by, causing important notices to go unnoticed. There is no interaction or instant update mechanism.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Objectives
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create a digital web application where faculty can post announcements, and students can view, like, and comment. Students can subscribe to receive notifications. This ensures better communication and engagement across the university.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scope
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+* Faculty module: post, edit, delete announcements.
+* Student module: view announcements, like, comment.
+* Notification system: alerts for new posts. (Right now the notifications are only limited to native browser notifications and in app /notifications page)
+* Web-based interface: accessible on desktop and mobile.
+* Public access: User doesn't need to signin to view announcements so students not enrolled in the university can see the announcements.
 
-## Learn More
+Excluded: private messaging or unrelated social media features.
 
-To learn more about Next.js, take a look at the following resources:
+## Description
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+A web platform where faculty can create and share announcements with a title, description, and timestamp. Students can like and comment. User activity is tracked and the interface is clean and searchable. Authentication restricts posting to faculty and interactions to registered students.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tools and Technologies
 
-## Deploy on Vercel
+* **Frontend:** Nextjs
+* **Database:** Turso SQLite
+* **Language:** TypeScript
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ERD (Entity Relationship Diagram)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Entities:**
+
+* **User:** user_id, name, email, role, password
+* **Announcement:** announcement_id, title, content, created_at, faculty_id [FK]
+* **Like:** like_id, user_id [FK], announcement_id [FK]
+* **Comment:** comment_id, user_id [FK], announcement_id [FK], content, created_at
+* **Subscription:** subscription_id, user_id [FK], notify_enabled
+
+**Relationships:**
+
+* A User['Faculty' role] can create many Announcements.
+* A User['Student and Faculty' role] can post many Comments on Announcements.
+* A User['Student' role] can like many Announcements.
+* A User['Student' role] can subscribe for notifications.
+
+## Expected Result
+
+* Faculty can publish announcements online.
+* Students receive real-time notifications and can like/comment.
+* Visibility, accessibility, and communication improve.
+* Physical notice boards are no longer needed.
+
+## Conclusion
+
+The Digital Bulletin Board provides an interactive and accessible way to share information within the university. It enhances faculty-student communication, ensures announcements are seen, and is scalable for future improvements.
