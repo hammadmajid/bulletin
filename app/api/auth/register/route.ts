@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
+import { hashPassword } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -31,12 +32,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create user (in real app, hash password with bcrypt)
+    // Hash password with bcrypt
+    const hashedPassword = await hashPassword(password);
+
+    // Create user with hashed password
     await db.insert(users).values({
       name,
       email,
       role,
-      password, // In production, hash this!
+      password: hashedPassword,
     });
 
     // Redirect to login

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/client";
 import { users } from "@/lib/db/schema";
+import { verifyPassword, createSession } from "@/lib/auth";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -29,16 +30,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Simple password check (in real app, use bcrypt)
-    if (user.password !== password) {
+    // Verify password with bcrypt
+    const isValidPassword = await verifyPassword(password, user.password);
+    if (!isValidPassword) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    // In a real app, set session/cookie here
-    // For now, redirect based on role
+    // Create session cookie
+    await createSession({
+      user_id: user.user_id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+
+    // Redirect based on role
     if (user.role === "Faculty") {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
