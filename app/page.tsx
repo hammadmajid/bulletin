@@ -1,65 +1,172 @@
-import Image from "next/image";
+import { db } from "@/lib/db/client";
+import { announcements, users, likes, comments } from "@/lib/db/schema";
+import { desc, eq, count } from "drizzle-orm";
+import Link from "next/link";
 
-export default function Home() {
+async function getAnnouncements() {
+  const results = await db
+    .select({
+      id: announcements.announcement_id,
+      title: announcements.title,
+      content: announcements.content,
+      createdAt: announcements.created_at,
+      authorName: users.name,
+    })
+    .from(announcements)
+    .leftJoin(users, eq(announcements.faculty_id, users.user_id))
+    .orderBy(desc(announcements.created_at));
+
+  // Get likes and comments count for each announcement
+  const announcementsWithCounts = await Promise.all(
+    results.map(async (a) => {
+      const [likesResult] = await db
+        .select({ count: count() })
+        .from(likes)
+        .where(eq(likes.announcement_id, a.id));
+      const [commentsResult] = await db
+        .select({ count: count() })
+        .from(comments)
+        .where(eq(comments.announcement_id, a.id));
+      return {
+        ...a,
+        likesCount: likesResult?.count ?? 0,
+        commentsCount: commentsResult?.count ?? 0,
+      };
+    })
+  );
+
+  return announcementsWithCounts;
+}
+
+function formatDate(timestamp: number | null) {
+  if (!timestamp) return "Unknown date";
+  return new Date(timestamp * 1000).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export default async function Home() {
+  const allAnnouncements = await getAnnouncements();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      {/* Hero Section */}
+      <div className="mb-12 text-center">
+        <h1 className="mb-4 text-4xl font-bold text-zinc-50">
+          University Bulletin Board
+        </h1>
+        <p className="mx-auto max-w-2xl text-lg text-zinc-400">
+          Stay updated with the latest announcements from faculty. View, like, and
+          comment on posts that matter to you.
+        </p>
+      </div>
+
+      {/* Announcements Grid */}
+      <div className="space-y-4">
+        {allAnnouncements.length === 0 ? (
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-12 text-center">
+            <div className="mb-4 text-6xl">📢</div>
+            <h3 className="mb-2 text-xl font-semibold text-zinc-50">
+              No announcements yet
+            </h3>
+            <p className="text-zinc-400">
+              Check back later for updates from faculty.
+            </p>
+          </div>
+        ) : (
+          allAnnouncements.map((announcement) => (
+            <Link
+              key={announcement.id}
+              href={`/announcement/${announcement.id}`}
+              className="block rounded-2xl border border-zinc-800 bg-zinc-900 p-6 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+              <div className="mb-3 flex items-start justify-between">
+                <h2 className="text-xl font-semibold text-zinc-50">
+                  {announcement.title}
+                </h2>
+                <span className="rounded-full bg-[#d946ef]/20 px-3 py-1 text-xs font-medium text-[#d946ef]">
+                  New
+                </span>
+              </div>
+              <p className="mb-4 line-clamp-2 text-zinc-400">
+                {announcement.content}
+              </p>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-4 text-zinc-500">
+                  <span className="flex items-center gap-1">
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    {announcement.authorName || "Faculty"}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    {formatDate(announcement.createdAt)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-zinc-500">
+                  <span className="flex items-center gap-1">
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                    {announcement.likesCount}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                    {announcement.commentsCount}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
     </div>
   );
 }
