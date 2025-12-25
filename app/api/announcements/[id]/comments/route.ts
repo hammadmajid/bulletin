@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/client";
 import { comments } from "@/lib/db/schema";
+import { getSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
 export async function POST(
@@ -7,14 +8,19 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check if user is logged in
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "You must be logged in to comment" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const announcementId = parseInt(id);
     const formData = await request.formData();
     const content = formData.get("content") as string;
-
-    // In a real app, get user_id from session
-    // For demo, we'll use 1 as placeholder
-    const userId = 1;
 
     if (!content) {
       return NextResponse.json(
@@ -24,7 +30,7 @@ export async function POST(
     }
 
     await db.insert(comments).values({
-      user_id: userId,
+      user_id: session.user_id,
       announcement_id: announcementId,
       content,
     });

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db/client";
 import { likes } from "@/lib/db/schema";
+import { getSession } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -8,12 +9,18 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check if user is logged in
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { error: "You must be logged in to like announcements" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const announcementId = parseInt(id);
-
-    // In a real app, get user_id from session
-    // For demo, we'll use 1 as placeholder
-    const userId = 1;
+    const userId = session.user_id;
 
     // Check if already liked
     const [existingLike] = await db

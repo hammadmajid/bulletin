@@ -13,22 +13,21 @@
 ### Authorization
 
 - [x] Middleware to check user role on protected routes
-- [ ] Only Faculty can create/edit/delete announcements
-- [ ] Only logged-in users can like/comment
+- [x] Only Faculty can create/edit/delete announcements
+- [x] Only logged-in users can like/comment
 - [x] Show/hide UI elements based on auth state
 
 ### Core Features
 
-- [ ] Like toggle (prevent duplicate likes per user)
-- [ ] Unlike functionality
-- [ ] Delete own comments (users)
-- [ ] Subscription toggle for notifications
+- [x] Like toggle (prevent duplicate likes per user)
+- [x] Unlike functionality
+- [x] Delete own comments (users)
+- [x] Subscription toggle for notifications
 
 ## 🟡 Important (Should Have)
 
 ### User Experience
 
-- [ ] Form validation with error messages
 - [ ] Loading states for async actions
 - [ ] Success/error toast notifications
 - [ ] Redirect after form submissions with feedback
