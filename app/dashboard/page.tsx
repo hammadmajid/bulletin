@@ -119,18 +119,46 @@ export default async function DashboardPage() {
 
         {allAnnouncements.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="mb-4 text-6xl">📝</div>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#d946ef]/10">
+              <svg
+                className="h-8 w-8 text-[#d946ef]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+            </div>
             <h3 className="mb-2 text-xl font-semibold text-zinc-50">
               No announcements yet
             </h3>
-            <p className="mb-4 text-zinc-400">
-              Create your first announcement to get started.
+            <p className="mx-auto mb-6 max-w-md text-zinc-400">
+              You haven&apos;t created any announcements. Start sharing
+              important updates with your students!
             </p>
             <Link
               href="/dashboard/new"
               className="inline-flex items-center gap-2 rounded-xl bg-[#d946ef] px-4 py-2 font-medium text-white transition-colors hover:bg-[#c026d3]"
             >
-              Create Announcement
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              Create Your First Announcement
             </Link>
           </div>
         ) : (

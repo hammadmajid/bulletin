@@ -1,10 +1,14 @@
 import { db } from "@/lib/db/client";
 import { announcements, users, likes, comments } from "@/lib/db/schema";
-import { eq, count, desc } from "drizzle-orm";
+import { eq, count, desc, and } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { LikeButton } from "@/components/like-button";
+import { CommentForm } from "@/components/forms/comment-form";
+import { DeleteButton } from "@/components/delete-button";
 
-async function getAnnouncement(id: number) {
+async function getAnnouncement(id: number, userId?: number) {
   const [announcement] = await db
     .select({
       id: announcements.announcement_id,
@@ -25,12 +29,23 @@ async function getAnnouncement(id: number) {
     .from(likes)
     .where(eq(likes.announcement_id, id));
 
+  // Check if current user has liked
+  let isLiked = false;
+  if (userId) {
+    const [userLike] = await db
+      .select()
+      .from(likes)
+      .where(and(eq(likes.announcement_id, id), eq(likes.user_id, userId)));
+    isLiked = !!userLike;
+  }
+
   const announcementComments = await db
     .select({
       id: comments.comment_id,
       content: comments.content,
       createdAt: comments.created_at,
       authorName: users.name,
+      authorId: users.user_id,
     })
     .from(comments)
     .leftJoin(users, eq(comments.user_id, users.user_id))
@@ -40,6 +55,7 @@ async function getAnnouncement(id: number) {
   return {
     ...announcement,
     likesCount: likesResult?.count ?? 0,
+    isLiked,
     comments: announcementComments,
   };
 }
@@ -61,11 +77,15 @@ export default async function AnnouncementPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const announcement = await getAnnouncement(parseInt(id));
+  const session = await getSession();
+  const announcement = await getAnnouncement(parseInt(id), session?.user_id);
 
   if (!announcement) {
     notFound();
   }
+
+  const isLoggedIn = !!session;
+  const isAuthor = session?.user_id === announcement.authorId;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -140,27 +160,39 @@ export default async function AnnouncementPage({
 
         {/* Actions */}
         <div className="mt-8 flex items-center gap-4 border-t border-zinc-800 pt-6">
-          <form action={`/api/announcements/${announcement.id}/like`} method="POST">
-            <button
-              type="submit"
-              className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm text-zinc-400 transition-colors hover:border-[#d946ef] hover:text-[#d946ef]"
-            >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <LikeButton
+            announcementId={announcement.id}
+            likesCount={announcement.likesCount}
+            isLiked={announcement.isLiked}
+            isLoggedIn={isLoggedIn}
+          />
+          {isAuthor && (
+            <>
+              <Link
+                href={`/dashboard/edit/${announcement.id}`}
+                className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-50"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                />
-              </svg>
-              Like ({announcement.likesCount})
-            </button>
-          </form>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit
+              </Link>
+              <DeleteButton
+                announcementId={announcement.id}
+                type="announcement"
+              />
+            </>
+          )}
         </div>
       </article>
 
@@ -171,44 +203,38 @@ export default async function AnnouncementPage({
         </h2>
 
         {/* Comment Form */}
-        <form
-          action={`/api/announcements/${announcement.id}/comments`}
-          method="POST"
-          className="mb-6"
-        >
-          <textarea
-            name="content"
-            rows={3}
-            required
-            className="mb-3 w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-zinc-50 placeholder-zinc-500 focus:border-[#d946ef] focus:outline-none focus:ring-1 focus:ring-[#d946ef]"
-            placeholder="Write a comment... (Login required)"
-          />
-          <button
-            type="submit"
-            className="rounded-xl bg-[#d946ef] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#c026d3]"
-          >
-            Post Comment
-          </button>
-        </form>
+        <CommentForm announcementId={announcement.id} isLoggedIn={isLoggedIn} />
 
         {/* Comments List */}
         <div className="space-y-4">
           {announcement.comments.length === 0 ? (
-            <p className="text-center text-zinc-500">
-              No comments yet. Be the first to comment!
-            </p>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center">
+              <div className="mb-3 text-4xl">💬</div>
+              <p className="text-zinc-400">
+                No comments yet. Be the first to share your thoughts!
+              </p>
+            </div>
           ) : (
             announcement.comments.map((comment) => (
               <div
                 key={comment.id}
                 className="rounded-xl border border-zinc-800 bg-zinc-900 p-4"
               >
-                <div className="mb-2 flex items-center gap-2 text-sm text-zinc-500">
-                  <span className="font-medium text-zinc-300">
-                    {comment.authorName || "Anonymous"}
-                  </span>
-                  <span>•</span>
-                  <span>{formatDate(comment.createdAt)}</span>
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-zinc-500">
+                    <span className="font-medium text-zinc-300">
+                      {comment.authorName || "Anonymous"}
+                    </span>
+                    <span>•</span>
+                    <span>{formatDate(comment.createdAt)}</span>
+                  </div>
+                  {session?.user_id === comment.authorId && (
+                    <DeleteButton
+                      announcementId={announcement.id}
+                      type="comment"
+                      commentId={comment.id}
+                    />
+                  )}
                 </div>
                 <p className="text-zinc-300">{comment.content}</p>
               </div>

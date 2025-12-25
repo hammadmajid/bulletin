@@ -3,6 +3,7 @@ import { announcements } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { AnnouncementForm } from "@/components/forms/announcement-form";
 
 async function getAnnouncement(id: number) {
   const [announcement] = await db
@@ -52,54 +53,12 @@ export default async function EditAnnouncementPage({
           Edit Announcement
         </h1>
 
-        <form action={`/api/announcements/${id}`} method="POST" className="space-y-6">
-          <input type="hidden" name="_method" value="PUT" />
-
-          <div>
-            <label htmlFor="title" className="mb-2 block text-sm text-zinc-400">
-              Title
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              required
-              defaultValue={announcement.title}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-zinc-50 placeholder-zinc-500 focus:border-[#d946ef] focus:outline-none focus:ring-1 focus:ring-[#d946ef]"
-              placeholder="Announcement title"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="content" className="mb-2 block text-sm text-zinc-400">
-              Content
-            </label>
-            <textarea
-              id="content"
-              name="content"
-              rows={8}
-              required
-              defaultValue={announcement.content}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-zinc-50 placeholder-zinc-500 focus:border-[#d946ef] focus:outline-none focus:ring-1 focus:ring-[#d946ef]"
-              placeholder="Write your announcement content here..."
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              className="rounded-xl bg-[#d946ef] px-6 py-3 font-medium text-white transition-colors hover:bg-[#c026d3]"
-            >
-              Update Announcement
-            </button>
-            <Link
-              href="/dashboard"
-              className="rounded-xl border border-zinc-700 bg-zinc-800 px-6 py-3 font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-50"
-            >
-              Cancel
-            </Link>
-          </div>
-        </form>
+        <AnnouncementForm
+          mode="edit"
+          announcementId={announcement.announcement_id}
+          initialTitle={announcement.title}
+          initialContent={announcement.content}
+        />
       </div>
     </div>
   );

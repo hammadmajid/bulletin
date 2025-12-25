@@ -28,10 +28,10 @@
 
 ### User Experience
 
-- [ ] Loading states for async actions
-- [ ] Success/error toast notifications
-- [ ] Redirect after form submissions with feedback
-- [ ] Empty state improvements
+- [x] Loading states for async actions
+- [x] Success/error toast notifications
+- [x] Redirect after form submissions with feedback
+- [x] Empty state improvements
 
 ### Notifications
 
