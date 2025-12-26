@@ -40,18 +40,14 @@
 
 ### Notifications
 
-- [ ] Request browser notification permission
-- [ ] Store push subscription in database
-- [ ] Send browser notifications on new announcements
-- [ ] Mark notifications as read
-
+- [x] Store push subscription in database
+- [x] Mark notifications as read
 
 ## 🟢 Nice to Have
 
 ### Polish
 
 - [ ] Mobile-responsive navigation (hamburger menu)
-- [ ] Optimistic UI updates for likes
 
 ## 📁 File Structure Reference
 
@@ -77,4 +73,3 @@ app/
 3. **Create proxy.ts** in app root for route protection
 
 Good to know: Starting with Next.js 16, Middleware is now called Proxy to better reflect its purpose. The functionality remains the same.
-
