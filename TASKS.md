@@ -33,6 +33,11 @@
 - [x] Redirect after form submissions with feedback
 - [x] Empty state improvements
 
+### Developer
+
+- [x] Add endpoint to seed database /dev/db/seed
+- [x] Add endpoint to delete all the data in database /dev/db/clean
+
 ### Notifications
 
 - [ ] Request browser notification permission
