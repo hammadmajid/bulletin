@@ -1,5 +1,5 @@
 import { db } from "@/lib/db/client";
-import { users, announcements, likes, comments, subscriptions } from "@/lib/db/schema";
+import { users, announcements, likes, comments, subscriptions, notifications, pushSubscriptions } from "@/lib/db/schema";
 import { NextResponse } from "next/server";
 
 export async function POST() {
@@ -15,6 +15,8 @@ export async function POST() {
     // First delete tables that reference other tables
     await db.delete(likes);
     await db.delete(comments);
+    await db.delete(notifications);
+    await db.delete(pushSubscriptions);
     await db.delete(subscriptions);
 
     // Then delete announcements (references users)
@@ -25,7 +27,7 @@ export async function POST() {
 
     return NextResponse.json({
       message: "Database cleaned successfully",
-      tables: ["likes", "comments", "subscriptions", "announcements", "users"],
+      tables: ["likes", "comments", "notifications", "pushSubscriptions", "subscriptions", "announcements", "users"],
     });
   } catch (error) {
     console.error("Error cleaning database:", error);

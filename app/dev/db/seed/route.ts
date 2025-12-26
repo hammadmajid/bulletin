@@ -1,6 +1,7 @@
 import { db } from "@/lib/db/client";
-import { users, announcements, likes, comments, subscriptions } from "@/lib/db/schema";
+import { users, announcements, likes, comments, subscriptions, notifications } from "@/lib/db/schema";
 import { hashPassword } from "@/lib/auth";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function POST() {
@@ -15,96 +16,79 @@ export async function POST() {
     // Create sample users
     const hashedPassword = await hashPassword("password123");
 
-    const [faculty1] = await db
-      .insert(users)
-      .values({
-        name: "Dr. Jane Smith",
-        email: "jane.smith@university.edu",
-        role: "Faculty",
-        password: hashedPassword,
-      })
-      .returning();
+    // Insert users and fetch them back by email (workaround for Turso/libSQL)
+    await db.insert(users).values({
+      name: "Dr. Jane Smith",
+      email: "jane.smith@university.edu",
+      role: "Faculty",
+      password: hashedPassword,
+    });
+    const [faculty1] = await db.select().from(users).where(eq(users.email, "jane.smith@university.edu"));
 
-    const [faculty2] = await db
-      .insert(users)
-      .values({
-        name: "Prof. John Doe",
-        email: "john.doe@university.edu",
-        role: "Faculty",
-        password: hashedPassword,
-      })
-      .returning();
+    await db.insert(users).values({
+      name: "Prof. John Doe",
+      email: "john.doe@university.edu",
+      role: "Faculty",
+      password: hashedPassword,
+    });
+    const [faculty2] = await db.select().from(users).where(eq(users.email, "john.doe@university.edu"));
 
-    const [student1] = await db
-      .insert(users)
-      .values({
-        name: "Alice Johnson",
-        email: "alice@student.edu",
-        role: "Student",
-        password: hashedPassword,
-      })
-      .returning();
+    await db.insert(users).values({
+      name: "Alice Johnson",
+      email: "alice@student.edu",
+      role: "Student",
+      password: hashedPassword,
+    });
+    const [student1] = await db.select().from(users).where(eq(users.email, "alice@student.edu"));
 
-    const [student2] = await db
-      .insert(users)
-      .values({
-        name: "Bob Williams",
-        email: "bob@student.edu",
-        role: "Student",
-        password: hashedPassword,
-      })
-      .returning();
+    await db.insert(users).values({
+      name: "Bob Williams",
+      email: "bob@student.edu",
+      role: "Student",
+      password: hashedPassword,
+    });
+    const [student2] = await db.select().from(users).where(eq(users.email, "bob@student.edu"));
 
-    const [student3] = await db
-      .insert(users)
-      .values({
-        name: "Charlie Brown",
-        email: "charlie@student.edu",
-        role: "Student",
-        password: hashedPassword,
-      })
-      .returning();
+    await db.insert(users).values({
+      name: "Charlie Brown",
+      email: "charlie@student.edu",
+      role: "Student",
+      password: hashedPassword,
+    });
+    const [student3] = await db.select().from(users).where(eq(users.email, "charlie@student.edu"));
 
     // Create sample announcements
-    const [announcement1] = await db
-      .insert(announcements)
-      .values({
-        title: "Welcome to the New Semester!",
-        content:
-          "Welcome back everyone! I hope you had a restful break. This semester we'll be covering exciting topics including advanced algorithms, data structures, and system design. Office hours will be Monday and Wednesday from 2-4 PM. Looking forward to a great semester!",
-        faculty_id: faculty1.user_id,
-      })
-      .returning();
+    await db.insert(announcements).values({
+      title: "Welcome to the New Semester!",
+      content:
+        "Welcome back everyone! I hope you had a restful break. This semester we'll be covering exciting topics including advanced algorithms, data structures, and system design. Office hours will be Monday and Wednesday from 2-4 PM. Looking forward to a great semester!",
+      faculty_id: faculty1.user_id,
+    });
+    const [announcement1] = await db.select().from(announcements).where(eq(announcements.title, "Welcome to the New Semester!"));
 
-    const [announcement2] = await db
-      .insert(announcements)
-      .values({
-        title: "Midterm Exam Schedule Posted",
-        content:
-          "The midterm examination schedule has been posted. Please check the course portal for your specific exam times and locations. Remember to bring your student ID and arrive 15 minutes early. Good luck with your preparations!",
-        faculty_id: faculty1.user_id,
-      })
-      .returning();
+    await db.insert(announcements).values({
+      title: "Midterm Exam Schedule Posted",
+      content:
+        "The midterm examination schedule has been posted. Please check the course portal for your specific exam times and locations. Remember to bring your student ID and arrive 15 minutes early. Good luck with your preparations!",
+      faculty_id: faculty1.user_id,
+    });
+    const [announcement2] = await db.select().from(announcements).where(eq(announcements.title, "Midterm Exam Schedule Posted"));
 
-    const [announcement3] = await db
-      .insert(announcements)
-      .values({
-        title: "Guest Lecture: AI in Healthcare",
-        content:
-          "We have a special guest lecture next Thursday at 3 PM in the main auditorium. Dr. Sarah Chen from TechHealth Inc. will be speaking about practical applications of AI in healthcare. This is a great networking opportunity - attendance is highly encouraged!",
-        faculty_id: faculty2.user_id,
-      })
-      .returning();
+    await db.insert(announcements).values({
+      title: "Guest Lecture: AI in Healthcare",
+      content:
+        "We have a special guest lecture next Thursday at 3 PM in the main auditorium. Dr. Sarah Chen from TechHealth Inc. will be speaking about practical applications of AI in healthcare. This is a great networking opportunity - attendance is highly encouraged!",
+      faculty_id: faculty2.user_id,
+    });
+    const [announcement3] = await db.select().from(announcements).where(eq(announcements.title, "Guest Lecture: AI in Healthcare"));
 
-    const [announcement4] = await db
-      .insert(announcements)
-      .values({
-        title: "Research Assistant Positions Available",
-        content:
-          "I'm looking for motivated students to join my research team for the upcoming summer. We'll be working on machine learning applications in natural language processing. Requirements: GPA 3.5+, completed CS201, strong Python skills. Apply by sending your resume to my email.",
-        faculty_id: faculty2.user_id,
-      })
-      .returning();
+    await db.insert(announcements).values({
+      title: "Research Assistant Positions Available",
+      content:
+        "I'm looking for motivated students to join my research team for the upcoming summer. We'll be working on machine learning applications in natural language processing. Requirements: GPA 3.5+, completed CS201, strong Python skills. Apply by sending your resume to my email.",
+      faculty_id: faculty2.user_id,
+    });
+    const [announcement4] = await db.select().from(announcements).where(eq(announcements.title, "Research Assistant Positions Available"));
 
     // Create sample likes
     await db.insert(likes).values([
@@ -153,6 +137,20 @@ export async function POST() {
       { user_id: student3.user_id, notify_enabled: 0 },
     ]);
 
+    // Create sample notifications for subscribed users
+    await db.insert(notifications).values([
+      // Student 1 notifications (subscribed)
+      { user_id: student1.user_id, announcement_id: announcement1.announcement_id, is_read: 1 },
+      { user_id: student1.user_id, announcement_id: announcement2.announcement_id, is_read: 1 },
+      { user_id: student1.user_id, announcement_id: announcement3.announcement_id, is_read: 0 },
+      { user_id: student1.user_id, announcement_id: announcement4.announcement_id, is_read: 0 },
+      // Student 2 notifications (subscribed)
+      { user_id: student2.user_id, announcement_id: announcement1.announcement_id, is_read: 1 },
+      { user_id: student2.user_id, announcement_id: announcement2.announcement_id, is_read: 0 },
+      { user_id: student2.user_id, announcement_id: announcement3.announcement_id, is_read: 0 },
+      { user_id: student2.user_id, announcement_id: announcement4.announcement_id, is_read: 0 },
+    ]);
+
     return NextResponse.json({
       message: "Database seeded successfully",
       data: {
@@ -161,6 +159,7 @@ export async function POST() {
         likes: 7,
         comments: 5,
         subscriptions: 3,
+        notifications: 8,
       },
     });
   } catch (error) {

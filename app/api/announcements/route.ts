@@ -1,6 +1,7 @@
 import { db } from "@/lib/db/client";
-import { announcements } from "@/lib/db/schema";
+import { announcements, subscriptions, notifications } from "@/lib/db/schema";
 import { getSession } from "@/lib/auth";
+import { eq, and, desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -36,6 +37,35 @@ export async function POST(request: Request) {
       content,
       faculty_id: session.user_id,
     });
+
+    // Get the newly created announcement (workaround for Turso/libSQL)
+    const [newAnnouncement] = await db
+      .select({ announcement_id: announcements.announcement_id })
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.title, title),
+          eq(announcements.faculty_id, session.user_id)
+        )
+      )
+      .orderBy(desc(announcements.created_at))
+      .limit(1);
+
+    // Create notifications for all subscribed users
+    const subscribedUsers = await db
+      .select({ user_id: subscriptions.user_id })
+      .from(subscriptions)
+      .where(eq(subscriptions.notify_enabled, 1));
+
+    if (subscribedUsers.length > 0 && newAnnouncement) {
+      await db.insert(notifications).values(
+        subscribedUsers.map((user) => ({
+          user_id: user.user_id,
+          announcement_id: newAnnouncement.announcement_id,
+          is_read: 0,
+        }))
+      );
+    }
 
     return NextResponse.redirect(new URL("/dashboard", request.url));
   } catch (error) {

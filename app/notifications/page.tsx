@@ -1,7 +1,10 @@
 import { db } from "@/lib/db/client";
-import { announcements, users } from "@/lib/db/schema";
+import { announcements, users, notifications, subscriptions } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 import Link from "next/link";
+import { NotificationButton } from "@/components/notification-button";
+import { NotificationsList } from "@/components/notifications-list";
 
 async function getRecentAnnouncements() {
   return await db
@@ -15,6 +18,39 @@ async function getRecentAnnouncements() {
     .leftJoin(users, eq(announcements.faculty_id, users.user_id))
     .orderBy(desc(announcements.created_at))
     .limit(20);
+}
+
+async function getUserNotifications(userId: number) {
+  return await db
+    .select({
+      notification_id: notifications.notification_id,
+      announcement_id: notifications.announcement_id,
+      is_read: notifications.is_read,
+      created_at: notifications.created_at,
+      title: announcements.title,
+      authorName: users.name,
+    })
+    .from(notifications)
+    .leftJoin(
+      announcements,
+      eq(notifications.announcement_id, announcements.announcement_id)
+    )
+    .leftJoin(users, eq(announcements.faculty_id, users.user_id))
+    .where(eq(notifications.user_id, userId))
+    .orderBy(desc(notifications.created_at))
+    .limit(50);
+}
+
+async function getSubscriptionStatus(userId: number) {
+  const [subscription] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.user_id, userId));
+
+  return {
+    isSubscribed: !!subscription && subscription.notify_enabled === 1,
+    hasPushSubscription: false, // This will be determined client-side
+  };
 }
 
 function formatDate(timestamp: number | null) {
@@ -32,7 +68,19 @@ function formatDate(timestamp: number | null) {
 }
 
 export default async function NotificationsPage() {
+  const session = await getSession();
   const recentAnnouncements = await getRecentAnnouncements();
+
+  // Get user-specific notifications if logged in
+  let userNotifications: Awaited<ReturnType<typeof getUserNotifications>> = [];
+  let unreadCount = 0;
+  let subscriptionStatus = { isSubscribed: false, hasPushSubscription: false };
+
+  if (session) {
+    userNotifications = await getUserNotifications(session.user_id);
+    unreadCount = userNotifications.filter((n) => n.is_read === 0).length;
+    subscriptionStatus = await getSubscriptionStatus(session.user_id);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -45,38 +93,82 @@ export default async function NotificationsPage() {
       </div>
 
       {/* Subscription Banner */}
-      <div className="mb-8 rounded-2xl border border-[#d946ef]/30 bg-[#d946ef]/10 p-6">
-        <div className="flex items-start gap-4">
-          <div className="rounded-xl bg-[#d946ef]/20 p-3">
-            <svg
-              className="h-6 w-6 text-[#d946ef]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-              />
-            </svg>
+      {session ? (
+        <div className="mb-8 rounded-2xl border border-[#d946ef]/30 bg-[#d946ef]/10 p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-xl bg-[#d946ef]/20 p-3">
+              <svg
+                className="h-6 w-6 text-[#d946ef]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-zinc-50">
+                Browser Notifications
+              </h3>
+              <p className="mt-1 text-sm text-zinc-400">
+                Get notified instantly when new announcements are posted.
+              </p>
+            </div>
+            <NotificationButton
+              isSubscribed={subscriptionStatus.isSubscribed}
+              hasPushSubscription={subscriptionStatus.hasPushSubscription}
+            />
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-zinc-50">
-              Enable Browser Notifications
-            </h3>
-            <p className="mt-1 text-sm text-zinc-400">
-              Get notified instantly when new announcements are posted.
-            </p>
-          </div>
-          <button className="rounded-xl bg-[#d946ef] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#c026d3]">
-            Enable
-          </button>
         </div>
-      </div>
+      ) : (
+        <div className="mb-8 rounded-2xl border border-zinc-700 bg-zinc-800/50 p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-xl bg-zinc-700 p-3">
+              <svg
+                className="h-6 w-6 text-zinc-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-zinc-50">
+                Enable Browser Notifications
+              </h3>
+              <p className="mt-1 text-sm text-zinc-400">
+                <Link href="/login" className="text-[#d946ef] hover:underline">
+                  Sign in
+                </Link>{" "}
+                to enable push notifications for new announcements.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Notifications List */}
+      {/* User Notifications (if logged in and has notifications) */}
+      {session && userNotifications.length > 0 && (
+        <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-900">
+          <NotificationsList
+            initialNotifications={userNotifications}
+            initialUnreadCount={unreadCount}
+          />
+        </div>
+      )}
+
+      {/* Recent Announcements List */}
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900">
         <div className="border-b border-zinc-800 p-4">
           <h2 className="text-lg font-semibold text-zinc-50">
@@ -102,11 +194,11 @@ export default async function NotificationsPage() {
               </svg>
             </div>
             <h3 className="mb-2 text-xl font-semibold text-zinc-50">
-              No notifications yet
+              No announcements yet
             </h3>
             <p className="mx-auto max-w-md text-zinc-400">
               When faculty members post new announcements, you&apos;ll see them
-              here. Enable notifications to get instant alerts!
+              here.
             </p>
           </div>
         ) : (
@@ -117,9 +209,9 @@ export default async function NotificationsPage() {
                 href={`/announcement/${announcement.id}`}
                 className="flex items-start gap-4 p-4 transition-colors hover:bg-zinc-800/50"
               >
-                <div className="rounded-full bg-[#d946ef]/20 p-2">
+                <div className="rounded-full bg-zinc-800 p-2">
                   <svg
-                    className="h-4 w-4 text-[#d946ef]"
+                    className="h-4 w-4 text-zinc-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
